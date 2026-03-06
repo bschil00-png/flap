@@ -9,5 +9,7 @@ public class ExerciseApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ExerciseApplication.class, args);
 	}
+	
+	//서버실행
 
 }
