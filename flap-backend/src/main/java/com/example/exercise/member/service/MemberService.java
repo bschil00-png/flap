@@ -70,5 +70,7 @@ public class MemberService {
         memberRepository.delete(member);
     }
     
+    //adasdasdas
+    
     
 }
