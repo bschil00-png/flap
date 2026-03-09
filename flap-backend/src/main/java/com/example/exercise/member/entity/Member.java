@@ -6,15 +6,16 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "member") 
+@Table(name = "member")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
 public class Member {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // SERIAL 대응
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -26,14 +27,21 @@ public class Member {
     @Column(nullable = false, length = 50)
     private String name;
 
-    // DB DEFAULT CURRENT_TIMESTAMP 사용 (DB가 넣어주는 값)
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
-    
-    
-    public void update(String name, String password) {
+
+    @Column(nullable = false)
+    private boolean deleted = false;
+
+    private LocalDateTime deletedAt;
+
+    public void update(String name, String email) {
         this.name = name;
-        this.password = password;
+        this.email = email;
     }
-    
+
+    public void softDelete() {
+        this.deleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
 }
