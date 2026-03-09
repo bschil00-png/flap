@@ -16,6 +16,7 @@ export default function MemberEditPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
+    email: "",
     name: "",
     password: "",
   });
@@ -26,6 +27,7 @@ export default function MemberEditPage() {
       try {
         const res = await getMember(id);
         setForm({
+          email: res.data.email || "",
           name: res.data.name || "",
           password: "",
         });
@@ -45,17 +47,22 @@ export default function MemberEditPage() {
   };
 
   const onSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      await updateMember(id, form);
-      alert("회원 수정 성공");
-      navigate(`/members/${id}`);
-    } catch (err) {
-      setError(err?.response?.data?.message || "회원 수정 실패");
-    }
-  };
+  try {
+    const payload = {
+      name: form.name,
+      ...(form.password.trim() && { password: form.password }),
+    };
+
+    await updateMember(id, payload);
+    alert("회원 수정 성공");
+    navigate(`/members/${id}`);
+  } catch (err) {
+    setError(err?.response?.data?.message || "회원 수정 실패");
+  }
+};
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
@@ -71,6 +78,13 @@ export default function MemberEditPage() {
           onSubmit={onSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
         >
+
+          <TextField
+            label="이메일"
+            name="email"
+            value={form.email}
+            fullWidth
+          />
           <TextField
             label="이름"
             name="name"
