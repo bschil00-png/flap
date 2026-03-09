@@ -35,9 +35,14 @@ public class Member {
 
     private LocalDateTime deletedAt;
 
-    public void update(String name, String email) {
-        this.name = name;
-        this.email = email;
+    public void update(String name, String password) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+
+        if (password != null && !password.isBlank()) {
+            this.password = password;
+        }
     }
 
     public void softDelete() {
