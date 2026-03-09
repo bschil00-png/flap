@@ -61,4 +61,5 @@ public class MemberService {
 
         member.softDelete();
     }
+
 }
