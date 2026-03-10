@@ -40,8 +40,8 @@ export default function HomePage() {
             variant="body1"
             sx={{ color: "text.secondary", mb: 4, maxWidth: 520 }}
           >
-            111회원 등록, 조회, 수정, 삭제를 연습하는 프로젝트를
-            실제 서비스처럼 보이도록 구성한 관리자형 웹 화면입니다.
+            회원 등록, 조회, 수정, 삭제와 예약 등록/조회 기능을
+            실제 서비스처럼 연습할 수 있는 관리자형 웹 화면입니다.
           </Typography>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -64,6 +64,18 @@ export default function HomePage() {
             >
               회원목록 보기
             </Button>
+
+            <Button
+              component={RouterLink}
+              to="/reservations"
+              variant="outlined"
+              size="large"
+              sx={{ px: 4, py: 1.5, borderRadius: 3 }}
+            >
+              예약목록 보기
+            </Button>
+
+
           </Stack>
         </Grid>
 

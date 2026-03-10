@@ -14,19 +14,26 @@ export default function MainLayout() {
         }}
       >
         <Toolbar sx={{ maxWidth: 1200, width: "100%", mx: "auto" }}>
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 800, flexGrow: 1 }}
-          >
-            Exercise Front
+          <Typography variant="h6" sx={{ fontWeight: 800, flexGrow: 1 }}>
+            Flap Front
           </Typography>
 
           <Button component={RouterLink} to="/" color="inherit">
             홈
           </Button>
+
+          <Button component={RouterLink} to="/login" color="inherit">
+            로그인
+          </Button>
+
           <Button component={RouterLink} to="/members" color="inherit">
             회원목록
           </Button>
+
+          <Button component={RouterLink} to="/reservations" color="inherit">
+            예약목록
+          </Button>
+
           <Button
             component={RouterLink}
             to="/members/new"
