@@ -1,0 +1,123 @@
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Container,
+  Divider,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import {
+  deleteReservation,
+  getReservationsByMemberId,
+} from "../../api/reservations";
+import { unwrapData } from "../../api/client";
+import { getLoginUser } from "../../utils/authStorage";
+
+export default function MyReservationListPage() {
+  const navigate = useNavigate();
+  const loginUser = getLoginUser();
+  const memberId = loginUser ? loginUser.id : null;
+
+  const [reservations, setReservations] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!memberId) return;
+
+    const fetchReservations = async () => {
+      try {
+        const res = await getReservationsByMemberId(memberId);
+        const data = unwrapData(res);
+        setReservations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+        setError(
+          err?.response?.data?.message || "예약 목록 조회에 실패했습니다.",
+        );
+      }
+    };
+
+    fetchReservations();
+  }, [memberId]);
+
+  const handleCancel = async (reservationId) => {
+    const ok = window.confirm("정말 이 예약을 취소하시겠습니까?");
+    if (!ok) return;
+
+    try {
+      await deleteReservation(reservationId);
+      alert("예약이 취소되었습니다.");
+
+      const res = await getReservationsByMemberId(memberId);
+      const data = unwrapData(res);
+      setReservations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "예약 취소에 실패했습니다.");
+    }
+  };
+
+  return (
+    <Container maxWidth="md">
+      <Card sx={{ mt: 6, borderRadius: 4, boxShadow: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            내 예약 목록
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          {reservations.length === 0 ? (
+            <Typography sx={{ mt: 2 }}>예약 내역이 없습니다.</Typography>
+          ) : (
+            reservations.map((item, index) => (
+              <Box key={item.id} sx={{ py: 2 }}>
+                <Typography variant="body1" fontWeight="bold">
+                  구장: {item.courtId}
+                </Typography>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  예약 시간: {item.startTime}
+                </Typography>
+
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate(`/reservations/${item.id}`)}
+                  >
+                    상세보기
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => handleCancel(item.id)}
+                  >
+                    예약 취소
+                  </Button>
+                </Stack>
+
+                {index !== reservations.length - 1 && (
+                  <Divider sx={{ mt: 3 }} />
+                )}
+              </Box>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </Container>
+  );
+}

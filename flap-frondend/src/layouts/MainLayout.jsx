@@ -1,53 +1,85 @@
-import { AppBar, Toolbar, Typography, Button, Box, Container } from "@mui/material";
-import { Link as RouterLink, Outlet } from "react-router-dom";
+import { AppBar, Box, Button, Container, Toolbar, Typography } from "@mui/material";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { clearLoginUser, getLoginUser } from "../utils/authStorage";
 
 export default function MainLayout() {
+  const navigate = useNavigate();
+  const loginUser = getLoginUser();
+
+  const handleLogout = () => {
+    clearLoginUser();
+    navigate("/login");
+  };
+
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#f7f9fc" }}>
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          bgcolor: "white",
-          color: "#111827",
-          borderBottom: "1px solid #e5e7eb",
-        }}
-      >
-        <Toolbar sx={{ maxWidth: 1200, width: "100%", mx: "auto" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, flexGrow: 1 }}>
-            Flap Front
-          </Typography>
+    <>
+      <AppBar position="static">
+        <Container maxWidth="lg">
+          <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography
+              variant="h6"
+              component={Link}
+              to="/"
+              sx={{ color: "#fff", textDecoration: "none", fontWeight: "bold" }}
+            >
+              Flap 예약 서비스
+            </Typography>
 
-          <Button component={RouterLink} to="/" color="inherit">
-            홈
-          </Button>
-
-          <Button component={RouterLink} to="/login" color="inherit">
-            로그인
-          </Button>
-
-          <Button component={RouterLink} to="/members" color="inherit">
-            회원목록
-          </Button>
-
-          <Button component={RouterLink} to="/reservations" color="inherit">
-            예약목록
-          </Button>
-
-          <Button
-            component={RouterLink}
-            to="/members/new"
-            variant="contained"
-            sx={{ ml: 2, borderRadius: 3 }}
-          >
-            회원가입
-          </Button>
-        </Toolbar>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              {loginUser ? (
+                <>
+                  <Button color="inherit" component={Link} to="/reservations/new">
+                    예약하기
+                  </Button>
+                  <Button color="inherit" component={Link} to="/my-reservations">
+                    내 예약
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to={`/members/${loginUser.id}`}
+                  >
+                    내 정보
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={Link}
+                    to={`/members/${loginUser.id}/edit`}
+                  >
+                    내 정보 수정
+                  </Button>
+                  <Button color="inherit" onClick={handleLogout}>
+                    로그아웃
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button color="inherit" component={Link} to="/login">
+                    로그인
+                  </Button>
+                  <Button color="inherit" component={Link} to="/members/new">
+                    회원가입
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Toolbar>
+        </Container>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Outlet />
-      </Container>
-    </Box>
+      <Box
+        sx={{
+          minHeight: "calc(100vh - 64px)",
+          display: "flex",
+          justifyContent: "center",
+          px: 2,
+          py: 4,
+        }}
+      >
+        <Box sx={{ width: "100%", maxWidth: 1200 }}>
+          <Outlet />
+        </Box>
+      </Box>
+    </>
   );
 }
