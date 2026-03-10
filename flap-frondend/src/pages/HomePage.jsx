@@ -40,7 +40,7 @@ export default function HomePage() {
             variant="body1"
             sx={{ color: "text.secondary", mb: 4, maxWidth: 520 }}
           >
-            회원 등록, 조회, 수정, 삭제를 연습하는 프로젝트를
+            111회원 등록, 조회, 수정, 삭제를 연습하는 프로젝트를
             실제 서비스처럼 보이도록 구성한 관리자형 웹 화면입니다.
           </Typography>
 
