@@ -7,3 +7,4 @@ export const logout = () => api.post("/auth/logout");
 export const getMe = () => api.get("/auth/me");
 
 //테스트용
+//테스트용 2
