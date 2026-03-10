@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createMember } from "../api/members";
+import { createMember } from "../../api/members";
 
 export default function MemberCreatePage() {
   const navigate = useNavigate();

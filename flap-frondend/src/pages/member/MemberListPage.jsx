@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getMembers } from "../api/members";
+import { getMembers } from "../../api/members";
 
 export default function MemberListPage() {
   const [members, setMembers] = useState([]);
@@ -103,7 +103,11 @@ export default function MemberListPage() {
                   {member.name}
                 </Typography>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 3 }}
+                >
                   {member.email}
                 </Typography>
 

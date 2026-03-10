@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getReservation, updateReservation } from "../api/reservations";
-import { unwrapData } from "../api/client";
+import { getMember, updateMember } from "../../api/members";
+import { unwrapData } from "../../api/client";
 import {
   Container,
   Paper,
@@ -12,34 +12,33 @@ import {
   Alert,
 } from "@mui/material";
 
-export default function ReservationEditPage() {
+export default function MemberEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    memberId: "",
-    courtId: "",
-    startTime: "",
+    email: "",
+    name: "",
+    password: "",
   });
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchReservation = async () => {
+    const fetchMember = async () => {
       try {
-        const res = await getReservation(id);
+        const res = await getMember(id);
         const data = unwrapData(res);
-
         setForm({
-          memberId: data.memberId || "",
-          courtId: data.courtId || "",
-          startTime: data.startTime || "",
+          email: data.email || "",
+          name: data.name || "",
+          password: "",
         });
       } catch (err) {
-        setError(err?.response?.data?.message || "예약 조회 실패");
+        setError(err?.response?.data?.message || "회원 조회 실패");
       }
     };
 
-    fetchReservation();
+    fetchMember();
   }, [id]);
 
   const onChange = (e) => {
@@ -55,15 +54,15 @@ export default function ReservationEditPage() {
 
     try {
       const payload = {
-        courtId: Number(form.courtId),
-        startTime: form.startTime,
+        name: form.name,
+        ...(form.password.trim() && { password: form.password }),
       };
 
-      await updateReservation(id, payload);
-      alert("예약 수정 성공");
-      navigate(`/reservations/${id}`);
+      await updateMember(id, payload);
+      alert("회원 수정 성공");
+      navigate(`/members/${id}`);
     } catch (err) {
-      setError(err?.response?.data?.message || "예약 수정 실패");
+      setError(err?.response?.data?.message || "회원 수정 실패");
     }
   };
 
@@ -71,7 +70,7 @@ export default function ReservationEditPage() {
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          예약 수정
+          회원 수정
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -81,31 +80,22 @@ export default function ReservationEditPage() {
           onSubmit={onSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
         >
+          <TextField label="이메일" name="email" value={form.email} fullWidth />
           <TextField
-            label="회원 ID"
-            name="memberId"
-            value={form.memberId}
-            fullWidth
-            disabled
-          />
-
-          <TextField
-            label="코트 ID"
-            name="courtId"
-            type="number"
-            value={form.courtId}
+            label="이름"
+            name="name"
+            value={form.name}
             onChange={onChange}
             fullWidth
           />
 
           <TextField
-            label="시작 시간"
-            name="startTime"
-            type="datetime-local"
-            value={form.startTime}
+            label="새 비밀번호"
+            name="password"
+            type="password"
+            value={form.password}
             onChange={onChange}
             fullWidth
-            InputLabelProps={{ shrink: true }}
           />
 
           <Button type="submit" variant="contained">

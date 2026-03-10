@@ -10,8 +10,8 @@ import {
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getReservations } from "../api/reservations";
-import { unwrapData } from "../api/client";
+import { getReservations } from "../../api/reservations";
+import { unwrapData } from "../../api/client";
 
 export default function ReservationListPage() {
   const [reservations, setReservations] = useState([]);
@@ -92,7 +92,11 @@ export default function ReservationListPage() {
                 <Typography variant="body2" color="text.secondary">
                   코트 ID: {reservation.courtId}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
                   시작 시간: {reservation.startTime}
                 </Typography>
 
