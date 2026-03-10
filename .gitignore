@@ -1,4 +1,6 @@
+# =========================
 # Logs
+# =========================
 logs
 *.log
 npm-debug.log*
@@ -7,22 +9,72 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+dist/
+dist-ssr/
 *.local
 
-# Editor directories and files
+flap-frontend/node_modules/
+flap-frontend/dist/
+
+# =========================
+# Java / Spring / Gradle
+# =========================
+build/
+.gradle/
+out/
+bin/
+target/
+
+# Gradle wrapper jar는 보통 포함해야 함
+!gradle/wrapper/gradle-wrapper.jar
+
+# =========================
+# Eclipse
+# =========================
+.project
+.classpath
+.settings/
+.factorypath
+
+# STS / Spring Tool Suite
+.apt_generated/
+.sts4-cache/
+
+# =========================
+# IntelliJ
+# =========================
+.idea/
+*.iml
+
+# =========================
+# VSCode
+# =========================
 .vscode/*
 !.vscode/extensions.json
-.idea
+
+# =========================
+# OS
+# =========================
 .DS_Store
+Thumbs.db
+
+# =========================
+# Windows / Visual Studio 계열
+# =========================
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-flap-frontend/node_modules
-flap-frontend/dist
-build
-.gradle
+
+# =========================
+# Env / Secrets
+# =========================
+.env
+.env.*
+application-secret.yml
+application-local.yml
