@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { getMember, updateMember } from "../../api/members";
 import { unwrapData } from "../../api/client";
+import { getLoginUser } from "../../utils/authStorage";
 import {
   Container,
   Paper,
@@ -15,6 +16,7 @@ import {
 export default function MemberEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const loginUser = getLoginUser();
 
   const [form, setForm] = useState({
     email: "",
@@ -24,6 +26,9 @@ export default function MemberEditPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!loginUser) return;
+    if (String(loginUser.id) !== String(id)) return;
+
     const fetchMember = async () => {
       try {
         const res = await getMember(id);
@@ -39,7 +44,15 @@ export default function MemberEditPage() {
     };
 
     fetchMember();
-  }, [id]);
+  }, [id, loginUser]);
+
+  if (!loginUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (String(loginUser.id) !== String(id)) {
+    return <Navigate to="/" replace />;
+  }
 
   const onChange = (e) => {
     setForm((prev) => ({
@@ -70,7 +83,7 @@ export default function MemberEditPage() {
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          회원 수정
+          내 정보 수정
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -80,7 +93,14 @@ export default function MemberEditPage() {
           onSubmit={onSubmit}
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
         >
-          <TextField label="이메일" name="email" value={form.email} fullWidth />
+          <TextField
+            label="이메일"
+            name="email"
+            value={form.email}
+            fullWidth
+            disabled
+          />
+
           <TextField
             label="이름"
             name="name"

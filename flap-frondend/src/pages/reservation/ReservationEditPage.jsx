@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { getReservation, updateReservation } from "../../api/reservations";
 import { unwrapData } from "../../api/client";
+import { getLoginUser } from "../../utils/authStorage";
 import {
   Container,
   Paper,
@@ -15,6 +16,7 @@ import {
 export default function ReservationEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const loginUser = getLoginUser();
 
   const [form, setForm] = useState({
     memberId: "",
@@ -22,17 +24,25 @@ export default function ReservationEditPage() {
     startTime: "",
   });
   const [error, setError] = useState("");
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
+    if (!loginUser) return;
+
     const fetchReservation = async () => {
       try {
         const res = await getReservation(id);
         const data = unwrapData(res);
 
+        if (String(data.memberId) !== String(loginUser.id)) {
+          setForbidden(true);
+          return;
+        }
+
         setForm({
           memberId: data.memberId || "",
           courtId: data.courtId || "",
-          startTime: data.startTime || "",
+          startTime: formatDateTimeLocal(data.startTime) || "",
         });
       } catch (err) {
         setError(err?.response?.data?.message || "예약 조회 실패");
@@ -40,7 +50,15 @@ export default function ReservationEditPage() {
     };
 
     fetchReservation();
-  }, [id]);
+  }, [id, loginUser]);
+
+  if (!loginUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (forbidden) {
+    return <Navigate to="/my-reservations" replace />;
+  }
 
   const onChange = (e) => {
     setForm((prev) => ({
@@ -63,7 +81,19 @@ export default function ReservationEditPage() {
       alert("예약 수정 성공");
       navigate(`/reservations/${id}`);
     } catch (err) {
-      setError(err?.response?.data?.message || "예약 수정 실패");
+      const status = err?.response?.status;
+      const message = err?.response?.data?.message || "예약 수정 실패";
+
+      if (
+        status === 409 ||
+        message.includes("unique") ||
+        message.includes("already") ||
+        message.includes("중복")
+      ) {
+        setError("이미 예약된 구장입니다.");
+      } else {
+        setError(message);
+      }
     }
   };
 
@@ -115,4 +145,9 @@ export default function ReservationEditPage() {
       </Paper>
     </Container>
   );
+}
+
+function formatDateTimeLocal(value) {
+  if (!value) return "";
+  return value.length >= 16 ? value.slice(0, 16) : value;
 }
