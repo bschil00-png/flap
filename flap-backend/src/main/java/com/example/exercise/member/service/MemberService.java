@@ -1,5 +1,6 @@
 package com.example.exercise.member.service;
 
+import com.example.exercise.refresh.repository.RefreshTokenRepository;
 import com.example.exercise.member.dto.request.MemberCreateRequest;
 import com.example.exercise.member.dto.request.MemberUpdateRequest;
 import com.example.exercise.member.dto.response.MemberResponse;
@@ -18,6 +19,7 @@ import java.util.List;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -68,6 +70,11 @@ public class MemberService {
     public void delete(Long id) {
         Member member = memberRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
+
+        // 회원의 refresh token 먼저 삭제
+        refreshTokenRepository.deleteByMemberId(id);
+
+        // 회원 soft delete
         member.softDelete();
     }
 }
