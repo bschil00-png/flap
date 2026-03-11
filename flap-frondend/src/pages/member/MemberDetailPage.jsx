@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { getMember, deleteMember } from "../../api/members";
 import { unwrapData } from "../../api/client";
+import { getLoginUser, clearLoginUser } from "../../utils/authStorage";
 import {
   Container,
   Paper,
@@ -16,42 +17,43 @@ import {
 export default function MemberDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const loginUser = getLoginUser();
+
   const [member, setMember] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!loginUser) return;
+    if (String(loginUser.id) !== String(id)) return;
+
     const run = async () => {
       setError("");
       try {
         const res = await getMember(id);
-        setMember(unwrapData(res));
+        const data = unwrapData(res);
+        setMember(data);
       } catch (err) {
         const msg = err?.response?.data?.message || "조회 실패";
         setError(msg);
       }
     };
+
     run();
-  }, [id]);
+  }, [id, loginUser]);
 
-  const handleDelete = async () => {
-    const ok = window.confirm("정말 삭제하시겠습니까?");
-    if (!ok) return;
+  if (!loginUser) {
+    return <Navigate to="/login" replace />;
+  }
 
-    try {
-      await deleteMember(id);
-      alert("회원 삭제 성공");
-      navigate("/members");
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "회원 삭제 실패");
-    }
-  };
+  if (String(loginUser.id) !== String(id)) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          회원 상세
+          내 정보
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
@@ -76,14 +78,35 @@ export default function MemberDetailPage() {
               <strong>이름:</strong> {member.name}
             </Typography>
 
-            <Button
-              variant="contained"
-              color="error"
-              sx={{ mt: 3 }}
-              onClick={handleDelete}
-            >
-              삭제하기
-            </Button>
+            <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
+              <Button
+                variant="contained"
+                onClick={() => navigate(`/members/${id}/edit`)}
+              >
+                수정하기
+              </Button>
+
+              <Button
+                variant="contained"
+                color="error"
+                onClick={async () => {
+                  const ok = window.confirm("정말 탈퇴하시겠습니까?");
+                  if (!ok) return;
+
+                  try {
+                    await deleteMember(id);
+                    clearLoginUser();
+                    alert("회원 삭제 성공");
+                    navigate("/login");
+                  } catch (err) {
+                    console.error(err);
+                    setError(err?.response?.data?.message || "회원 삭제 실패");
+                  }
+                }}
+              >
+                회원 탈퇴
+              </Button>
+            </Box>
           </Box>
         )}
       </Paper>

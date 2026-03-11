@@ -1,14 +1,21 @@
 import { AppBar, Box, Button, Container, Toolbar, Typography } from "@mui/material";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { clearLoginUser, getLoginUser } from "../utils/authStorage";
+import { logout } from "../api/auth";
 
 export default function MainLayout() {
   const navigate = useNavigate();
   const loginUser = getLoginUser();
 
-  const handleLogout = () => {
-    clearLoginUser();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error("로그아웃 API 실패:", err);
+    } finally {
+      clearLoginUser();
+      navigate("/login");
+    }
   };
 
   return (

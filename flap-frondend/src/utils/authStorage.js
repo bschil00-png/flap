@@ -16,3 +16,8 @@ export function clearLoginUser() {
 export function isLoggedIn() {
   return !!getLoginUser();
 }
+
+export function getAccessToken() {
+  const user = getLoginUser();
+  return user?.accessToken || null;
+}

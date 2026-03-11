@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { getReservation, deleteReservation } from "../../api/reservations";
 import { unwrapData } from "../../api/client";
+import { getLoginUser } from "../../utils/authStorage";
 import {
   Container,
   Paper,
@@ -16,16 +17,28 @@ import {
 export default function ReservationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const loginUser = getLoginUser();
 
   const [reservation, setReservation] = useState(null);
   const [error, setError] = useState("");
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
+    if (!loginUser) return;
+
     const run = async () => {
       setError("");
+      setForbidden(false);
+
       try {
         const res = await getReservation(id);
         const data = unwrapData(res);
+
+        if (String(data.memberId) !== String(loginUser.id)) {
+          setForbidden(true);
+          return;
+        }
+
         setReservation(data);
       } catch (err) {
         setError(err?.response?.data?.message || "예약 조회 실패");
@@ -33,21 +46,15 @@ export default function ReservationDetailPage() {
     };
 
     run();
-  }, [id]);
+  }, [id, loginUser]);
 
-  const handleDelete = async () => {
-    const ok = window.confirm("정말 삭제하시겠습니까?");
-    if (!ok) return;
+  if (!loginUser) {
+    return <Navigate to="/login" replace />;
+  }
 
-    try {
-      await deleteReservation(id);
-      alert("예약 삭제 성공");
-      navigate("/my-reservations");
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || "예약 삭제 실패");
-    }
-  };
+  if (forbidden) {
+    return <Navigate to="/my-reservations" replace />;
+  }
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
@@ -58,7 +65,7 @@ export default function ReservationDetailPage() {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        {!error && !reservation && (
+        {!error && !reservation && !forbidden && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress />
           </Box>
@@ -68,11 +75,6 @@ export default function ReservationDetailPage() {
           <Box sx={{ mt: 2 }}>
             <Typography variant="body1">
               <strong>ID:</strong> {reservation.id}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="body1">
-              <strong>회원 ID:</strong> {reservation.memberId}
             </Typography>
             <Divider sx={{ my: 2 }} />
 
@@ -115,7 +117,19 @@ export default function ReservationDetailPage() {
               variant="contained"
               color="error"
               sx={{ mt: 3, ml: 2 }}
-              onClick={handleDelete}
+              onClick={async () => {
+                const ok = window.confirm("정말 삭제하시겠습니까?");
+                if (!ok) return;
+
+                try {
+                  await deleteReservation(id);
+                  alert("예약 삭제 성공");
+                  navigate("/my-reservations");
+                } catch (err) {
+                  console.error(err);
+                  setError(err?.response?.data?.message || "예약 삭제 실패");
+                }
+              }}
             >
               삭제하기
             </Button>

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import ProtectedRoute from "../layouts/ProtectedRoute";
+import OwnerRoute from "../layouts/OwnerRoute";
 
 import HomePage from "../pages/HomePage";
 import LoginPage from "../pages/LoginPage";
@@ -8,13 +9,13 @@ import LoginPage from "../pages/LoginPage";
 import MemberCreatePage from "../pages/member/MemberCreatePage";
 import MemberDetailPage from "../pages/member/MemberDetailPage";
 import MemberEditPage from "../pages/member/MemberEditPage";
-import MemberListPage from "../pages/member/MemberListPage";
+// import MemberListPage from "../pages/member/MemberListPage";
 
-import ReservationListPage from "../pages/reservation/ReservationListPage";
 import ReservationCreatePage from "../pages/reservation/ReservationCreatePage";
 import ReservationDetailPage from "../pages/reservation/ReservationDetailPage";
 import ReservationEditPage from "../pages/reservation/ReservationEditPage";
 import MyReservationListPage from "../pages/reservation/MyReservationListPage";
+// import ReservationListPage from "../pages/reservation/ReservationListPage";
 
 export default function AppRouter() {
   return (
@@ -24,19 +25,30 @@ export default function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
 
-          <Route path="/members" element={<MemberListPage />} />
           <Route path="/members/new" element={<MemberCreatePage />} />
-          <Route path="/members/:id" element={<MemberDetailPage />} />
-          <Route path="/members/:id/edit" element={<MemberEditPage />} />
 
           <Route
-            path="/reservations"
+            path="/members/:id"
             element={
               <ProtectedRoute>
-                <ReservationListPage />
+                <OwnerRoute>
+                  <MemberDetailPage />
+                </OwnerRoute>
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/members/:id/edit"
+            element={
+              <ProtectedRoute>
+                <OwnerRoute>
+                  <MemberEditPage />
+                </OwnerRoute>
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/reservations/new"
             element={
@@ -45,6 +57,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/reservations/:id"
             element={
@@ -53,6 +66,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/reservations/:id/edit"
             element={
@@ -61,6 +75,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/my-reservations"
             element={

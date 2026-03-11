@@ -10,7 +10,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import {
   deleteReservation,
   getReservationsByMemberId,
@@ -21,29 +21,33 @@ import { getLoginUser } from "../../utils/authStorage";
 export default function MyReservationListPage() {
   const navigate = useNavigate();
   const loginUser = getLoginUser();
-  const memberId = loginUser ? loginUser.id : null;
 
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
+
+  const memberId = loginUser?.id;
 
   useEffect(() => {
     if (!memberId) return;
 
     const fetchReservations = async () => {
       try {
+        setError("");
         const res = await getReservationsByMemberId(memberId);
         const data = unwrapData(res);
         setReservations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
-        setError(
-          err?.response?.data?.message || "예약 목록 조회에 실패했습니다.",
-        );
+        setError(err?.response?.data?.message || "예약 목록 조회에 실패했습니다.");
       }
     };
 
     fetchReservations();
   }, [memberId]);
+
+  if (!loginUser) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleCancel = async (reservationId) => {
     const ok = window.confirm("정말 이 예약을 취소하시겠습니까?");
