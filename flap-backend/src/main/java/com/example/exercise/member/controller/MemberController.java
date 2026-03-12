@@ -4,10 +4,10 @@ import com.example.exercise.member.dto.request.MemberCreateRequest;
 import com.example.exercise.member.dto.request.MemberUpdateRequest;
 import com.example.exercise.member.dto.response.MemberResponse;
 import com.example.exercise.member.service.MemberService;
+import com.example.exercise.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,27 +22,32 @@ public class MemberController {
     }
 
     @GetMapping("/{id}")
-    public MemberResponse findOne(@PathVariable("id") Long id) {
-        return memberService.findOne(id);
+    public MemberResponse findOne(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return memberService.findOne(id, userDetails.getId());
     }
 
-    @GetMapping
-    public List<MemberResponse> findAll() {
-        return memberService.findAll();
+    @GetMapping("/me")
+    public MemberResponse me(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return memberService.findOne(userDetails.getId(), userDetails.getId());
     }
 
     @PutMapping("/{id}")
     public MemberResponse update(
             @PathVariable("id") Long id,
-            @RequestBody MemberUpdateRequest req
+            @RequestBody MemberUpdateRequest req,
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        return memberService.update(id, req);
+        return memberService.update(id, userDetails.getId(), req);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable("id") Long id) {
-        memberService.delete(id);
+    public void delete(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        memberService.delete(id, userDetails.getId());
     }
-    
-
 }

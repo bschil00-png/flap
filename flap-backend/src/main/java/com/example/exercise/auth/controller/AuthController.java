@@ -9,8 +9,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequiredArgsConstructor
@@ -47,10 +49,17 @@ public class AuthController {
 
     @PostMapping("/logout")
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = extractRefreshTokenFromCookie(request);
-        Long memberId = jwtTokenProvider.getMemberId(refreshToken);
+        try {
+            String refreshToken = extractRefreshTokenFromCookie(request);
 
-        authService.logout(memberId);
+            if (jwtTokenProvider.validateToken(refreshToken)
+                    && "refresh".equals(jwtTokenProvider.getTokenType(refreshToken))) {
+                Long memberId = jwtTokenProvider.getMemberId(refreshToken);
+                authService.logout(memberId);
+            }
+        } catch (Exception ignored) {
+            // 토큰이 이상하거나 만료되어도 쿠키 삭제는 진행
+        }
 
         Cookie cookie = new Cookie("refreshToken", null);
         cookie.setHttpOnly(true);
@@ -62,20 +71,20 @@ public class AuthController {
     @GetMapping("/me")
     public LoginResponse me(@AuthenticationPrincipal CustomUserDetails userDetails) {
         if (userDetails == null) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
 
         return LoginResponse.builder()
                 .id(userDetails.getId())
                 .email(userDetails.getEmail())
-                .name(null)
+                .name(userDetails.getName())
                 .message("현재 로그인 사용자")
                 .build();
     }
 
     private String extractRefreshTokenFromCookie(HttpServletRequest request) {
         if (request.getCookies() == null) {
-            throw new IllegalArgumentException("리프레시 토큰이 없습니다.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다.");
         }
 
         for (Cookie cookie : request.getCookies()) {
@@ -84,6 +93,6 @@ public class AuthController {
             }
         }
 
-        throw new IllegalArgumentException("리프레시 토큰이 없습니다.");
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다.");
     }
 }

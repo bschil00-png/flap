@@ -4,9 +4,12 @@ import com.example.exercise.reservation.dto.ReservationCreateRequest;
 import com.example.exercise.reservation.dto.ReservationResponse;
 import com.example.exercise.reservation.dto.ReservationUpdateRequest;
 import com.example.exercise.reservation.service.ReservationService;
+import com.example.exercise.security.principal.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -16,40 +19,62 @@ public class ReservationController {
 
     private final ReservationService reservationService;
 
- // 예약 생성 (Create)
     @PostMapping
-    public ReservationResponse create(@RequestBody ReservationCreateRequest req) {
-        return reservationService.create(req);
+    public ReservationResponse create(
+            @RequestBody ReservationCreateRequest req,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return reservationService.create(userDetails.getId(), req);
     }
- // 예약 단건 조회 (Read)
+
     @GetMapping("/{id}")
-    public ReservationResponse findOne(@PathVariable("id") Long id) {
-        return reservationService.findOne(id);
+    public ReservationResponse findOne(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return reservationService.findOne(id, userDetails.getId());
     }
- // 전체 예약 조회 (Read)
-    @GetMapping
-    public List<ReservationResponse> findAll() {
-        return reservationService.findAll();
+
+    @GetMapping("/me")
+    public List<ReservationResponse> myReservations(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return reservationService.findByMemberId(userDetails.getId());
     }
-    // 회원별 예약 조회
-    @GetMapping("/member/{memberId}")
-    public List<ReservationResponse> findByMemberId(@PathVariable("memberId") Long memberId) {
-        return reservationService.findByMemberId(memberId);
+
+    @GetMapping("/reserved-slots")
+    public List<Integer> reservedSlots(
+            @RequestParam Long courtId,
+            @RequestParam String date
+    ) {
+        return reservationService.findReservedHours(
+                courtId,
+                LocalDate.parse(date)
+        );
     }
-    // 예약 수정 (Update)
+
     @PutMapping("/{id}")
-    public ReservationResponse update(@PathVariable("id") Long id,
-                                      @RequestBody ReservationUpdateRequest req) {
-        return reservationService.update(id, req);
+    public ReservationResponse update(
+            @PathVariable("id") Long id,
+            @RequestBody ReservationUpdateRequest req,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return reservationService.update(id, userDetails.getId(), req);
     }
- // 예약 취소
+
     @PutMapping("/{id}/cancel")
-    public ReservationResponse cancel(@PathVariable("id") Long id) {
-        return reservationService.cancel(id);
+    public ReservationResponse cancel(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return reservationService.cancel(id, userDetails.getId());
     }
-    // 예약 삭제
+
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable("id") Long id) {
-        reservationService.delete(id);
+    public void delete(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        reservationService.delete(id, userDetails.getId());
     }
 }
