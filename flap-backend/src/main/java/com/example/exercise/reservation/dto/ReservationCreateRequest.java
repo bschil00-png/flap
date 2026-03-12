@@ -10,6 +10,5 @@ import java.time.LocalDateTime;
 public class ReservationCreateRequest {
 
     private Long courtId;
-    private Long memberId;
     private LocalDateTime startTime;
 }
