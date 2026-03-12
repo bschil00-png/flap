@@ -12,8 +12,8 @@ import {
 } from "@mui/material";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
-  deleteReservation,
-  getReservationsByMemberId,
+  cancelReservation,
+  getMyReservations,
 } from "../../api/reservations";
 import { unwrapData } from "../../api/client";
 import { getLoginUser } from "../../utils/authStorage";
@@ -25,25 +25,22 @@ export default function MyReservationListPage() {
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
 
-  const memberId = loginUser?.id;
+  const fetchReservations = async () => {
+    try {
+      setError("");
+      const res = await getMyReservations();
+      const data = unwrapData(res);
+      setReservations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || "예약 목록 조회에 실패했습니다.");
+    }
+  };
 
   useEffect(() => {
-    if (!memberId) return;
-
-    const fetchReservations = async () => {
-      try {
-        setError("");
-        const res = await getReservationsByMemberId(memberId);
-        const data = unwrapData(res);
-        setReservations(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error(err);
-        setError(err?.response?.data?.message || "예약 목록 조회에 실패했습니다.");
-      }
-    };
-
+    if (!loginUser) return;
     fetchReservations();
-  }, [memberId]);
+  }, [loginUser]);
 
   if (!loginUser) {
     return <Navigate to="/login" replace />;
@@ -54,12 +51,9 @@ export default function MyReservationListPage() {
     if (!ok) return;
 
     try {
-      await deleteReservation(reservationId);
+      await cancelReservation(reservationId);
       alert("예약이 취소되었습니다.");
-
-      const res = await getReservationsByMemberId(memberId);
-      const data = unwrapData(res);
-      setReservations(Array.isArray(data) ? data : []);
+      fetchReservations();
     } catch (err) {
       console.error(err);
       alert(err?.response?.data?.message || "예약 취소에 실패했습니다.");
@@ -67,61 +61,73 @@ export default function MyReservationListPage() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Card sx={{ mt: 6, borderRadius: 4, boxShadow: 3 }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            내 예약 목록
-          </Typography>
+      <Container maxWidth="md">
+        <Card sx={{ mt: 6, borderRadius: 4, boxShadow: 3 }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              내 예약 목록
+            </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+            )}
 
-          {reservations.length === 0 ? (
-            <Typography sx={{ mt: 2 }}>예약 내역이 없습니다.</Typography>
-          ) : (
-            reservations.map((item, index) => (
-              <Box key={item.id} sx={{ py: 2 }}>
-                <Typography variant="body1" fontWeight="bold">
-                  구장: {item.courtId}
-                </Typography>
+            {reservations.length === 0 ? (
+                <Typography sx={{ mt: 2 }}>예약 내역이 없습니다.</Typography>
+            ) : (
+                reservations.map((item, index) => (
+                    <Box key={item.id} sx={{ py: 2 }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        구장: {item.courtId}
+                      </Typography>
 
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 2 }}
-                >
-                  예약 시간: {item.startTime}
-                </Typography>
+                      <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mb: 2 }}
+                      >
+                        예약 시간: {item.startTime}
+                      </Typography>
 
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => navigate(`/reservations/${item.id}`)}
-                  >
-                    상세보기
-                  </Button>
+                      {item.status && (
+                          <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mb: 2 }}
+                          >
+                            상태: {item.status}
+                          </Typography>
+                      )}
 
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => handleCancel(item.id)}
-                  >
-                    예약 취소
-                  </Button>
-                </Stack>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => navigate(`/reservations/${item.id}`)}
+                        >
+                          상세보기
+                        </Button>
 
-                {index !== reservations.length - 1 && (
-                  <Divider sx={{ mt: 3 }} />
-                )}
-              </Box>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    </Container>
+                        {item.status !== "CANCELED" && (
+                            <Button
+                                variant="contained"
+                                color="error"
+                                onClick={() => handleCancel(item.id)}
+                            >
+                              예약 취소
+                            </Button>
+                        )}
+                      </Stack>
+
+                      {index !== reservations.length - 1 && (
+                          <Divider sx={{ mt: 3 }} />
+                      )}
+                    </Box>
+                ))
+            )}
+          </CardContent>
+        </Card>
+      </Container>
   );
 }

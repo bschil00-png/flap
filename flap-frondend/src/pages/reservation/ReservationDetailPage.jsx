@@ -21,24 +21,16 @@ export default function ReservationDetailPage() {
 
   const [reservation, setReservation] = useState(null);
   const [error, setError] = useState("");
-  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
     if (!loginUser) return;
 
     const run = async () => {
       setError("");
-      setForbidden(false);
 
       try {
         const res = await getReservation(id);
         const data = unwrapData(res);
-
-        if (String(data.memberId) !== String(loginUser.id)) {
-          setForbidden(true);
-          return;
-        }
-
         setReservation(data);
       } catch (err) {
         setError(err?.response?.data?.message || "예약 조회 실패");
@@ -52,90 +44,86 @@ export default function ReservationDetailPage() {
     return <Navigate to="/login" replace />;
   }
 
-  if (forbidden) {
-    return <Navigate to="/my-reservations" replace />;
-  }
-
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          예약 상세
-        </Typography>
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            예약 상세
+          </Typography>
 
-        {error && <Alert severity="error">{error}</Alert>}
+          {error && <Alert severity="error">{error}</Alert>}
 
-        {!error && !reservation && !forbidden && (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
+          {!error && !reservation && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                <CircularProgress />
+              </Box>
+          )}
 
-        {reservation && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body1">
-              <strong>ID:</strong> {reservation.id}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="body1">
-              <strong>코트 ID:</strong> {reservation.courtId}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="body1">
-              <strong>시작 시간:</strong> {reservation.startTime}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-
-            {reservation.status && (
-              <>
+          {reservation && (
+              <Box sx={{ mt: 2 }}>
                 <Typography variant="body1">
-                  <strong>상태:</strong> {reservation.status}
+                  <strong>ID:</strong> {reservation.id}
                 </Typography>
                 <Divider sx={{ my: 2 }} />
-              </>
-            )}
 
-            <Button
-              variant="outlined"
-              sx={{ mt: 3 }}
-              onClick={() => navigate("/my-reservations")}
-            >
-              목록으로
-            </Button>
+                <Typography variant="body1">
+                  <strong>코트 ID:</strong> {reservation.courtId}
+                </Typography>
+                <Divider sx={{ my: 2 }} />
 
-            <Button
-              variant="contained"
-              sx={{ mt: 3, ml: 2 }}
-              onClick={() => navigate(`/reservations/${reservation.id}/edit`)}
-            >
-              수정하기
-            </Button>
+                <Typography variant="body1">
+                  <strong>시작 시간:</strong> {reservation.startTime}
+                </Typography>
+                <Divider sx={{ my: 2 }} />
 
-            <Button
-              variant="contained"
-              color="error"
-              sx={{ mt: 3, ml: 2 }}
-              onClick={async () => {
-                const ok = window.confirm("정말 삭제하시겠습니까?");
-                if (!ok) return;
+                {reservation.status && (
+                    <>
+                      <Typography variant="body1">
+                        <strong>상태:</strong> {reservation.status}
+                      </Typography>
+                      <Divider sx={{ my: 2 }} />
+                    </>
+                )}
 
-                try {
-                  await deleteReservation(id);
-                  alert("예약 삭제 성공");
-                  navigate("/my-reservations");
-                } catch (err) {
-                  console.error(err);
-                  setError(err?.response?.data?.message || "예약 삭제 실패");
-                }
-              }}
-            >
-              삭제하기
-            </Button>
-          </Box>
-        )}
-      </Paper>
-    </Container>
+                <Button
+                    variant="outlined"
+                    sx={{ mt: 3 }}
+                    onClick={() => navigate("/my-reservations")}
+                >
+                  목록으로
+                </Button>
+
+                <Button
+                    variant="contained"
+                    sx={{ mt: 3, ml: 2 }}
+                    onClick={() => navigate(`/reservations/${reservation.id}/edit`)}
+                >
+                  수정하기
+                </Button>
+
+                <Button
+                    variant="contained"
+                    color="error"
+                    sx={{ mt: 3, ml: 2 }}
+                    onClick={async () => {
+                      const ok = window.confirm("정말 삭제하시겠습니까?");
+                      if (!ok) return;
+
+                      try {
+                        await deleteReservation(id);
+                        alert("예약 삭제 성공");
+                        navigate("/my-reservations");
+                      } catch (err) {
+                        console.error(err);
+                        setError(err?.response?.data?.message || "예약 삭제 실패");
+                      }
+                    }}
+                >
+                  삭제하기
+                </Button>
+              </Box>
+          )}
+        </Paper>
+      </Container>
   );
 }

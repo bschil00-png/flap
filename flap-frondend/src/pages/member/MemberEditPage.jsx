@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
-import { getMember, updateMember } from "../../api/members";
+import { getMyMember, updateMember } from "../../api/members";
 import { unwrapData } from "../../api/client";
 import { getLoginUser } from "../../utils/authStorage";
 import {
@@ -16,7 +16,9 @@ import {
 export default function MemberEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const loginUser = getLoginUser();
+  const loginUserId = loginUser?.id;
 
   const [form, setForm] = useState({
     email: "",
@@ -26,16 +28,18 @@ export default function MemberEditPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loginUser) return;
-    if (String(loginUser.id) !== String(id)) return;
+    if (!loginUserId) return;
+    if (String(loginUserId) !== String(id)) return;
 
     const fetchMember = async () => {
       try {
-        const res = await getMember(id);
+        setError("");
+        const res = await getMyMember();
         const data = unwrapData(res);
+
         setForm({
-          email: data.email || "",
-          name: data.name || "",
+          email: data?.email || "",
+          name: data?.name || "",
           password: "",
         });
       } catch (err) {
@@ -44,13 +48,13 @@ export default function MemberEditPage() {
     };
 
     fetchMember();
-  }, [id, loginUser]);
+  }, [id, loginUserId]);
 
-  if (!loginUser) {
+  if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
 
-  if (String(loginUser.id) !== String(id)) {
+  if (String(loginUserId) !== String(id)) {
     return <Navigate to="/" replace />;
   }
 
@@ -80,49 +84,49 @@ export default function MemberEditPage() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          내 정보 수정
-        </Typography>
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            내 정보 수정
+          </Typography>
 
-        {error && <Alert severity="error">{error}</Alert>}
+          {error && <Alert severity="error">{error}</Alert>}
 
-        <Box
-          component="form"
-          onSubmit={onSubmit}
-          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
-        >
-          <TextField
-            label="이메일"
-            name="email"
-            value={form.email}
-            fullWidth
-            disabled
-          />
+          <Box
+              component="form"
+              onSubmit={onSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
+          >
+            <TextField
+                label="이메일"
+                name="email"
+                value={form.email}
+                fullWidth
+                disabled
+            />
 
-          <TextField
-            label="이름"
-            name="name"
-            value={form.name}
-            onChange={onChange}
-            fullWidth
-          />
+            <TextField
+                label="이름"
+                name="name"
+                value={form.name}
+                onChange={onChange}
+                fullWidth
+            />
 
-          <TextField
-            label="새 비밀번호"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={onChange}
-            fullWidth
-          />
+            <TextField
+                label="새 비밀번호"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={onChange}
+                fullWidth
+            />
 
-          <Button type="submit" variant="contained">
-            수정 완료
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+            <Button type="submit" variant="contained">
+              수정 완료
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
   );
 }
