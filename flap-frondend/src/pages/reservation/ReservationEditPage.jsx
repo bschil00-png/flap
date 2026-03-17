@@ -17,6 +17,7 @@ export default function ReservationEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const loginUser = getLoginUser();
+  const loginUserId = loginUser?.id;
 
   const [form, setForm] = useState({
     memberId: "",
@@ -27,14 +28,15 @@ export default function ReservationEditPage() {
   const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    if (!loginUser) return;
+    if (!loginUserId) return;
 
     const fetchReservation = async () => {
       try {
+        setError("");
         const res = await getReservation(id);
         const data = unwrapData(res);
 
-        if (String(data.memberId) !== String(loginUser.id)) {
+        if (String(data.memberId) !== String(loginUserId)) {
           setForbidden(true);
           return;
         }
@@ -45,14 +47,15 @@ export default function ReservationEditPage() {
           startTime: formatDateTimeLocal(data.startTime) || "",
         });
       } catch (err) {
+        console.error(err);
         setError(err?.response?.data?.message || "예약 조회 실패");
       }
     };
 
     fetchReservation();
-  }, [id, loginUser]);
+  }, [id, loginUserId]);
 
-  if (!loginUser) {
+  if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
 
@@ -85,10 +88,10 @@ export default function ReservationEditPage() {
       const message = err?.response?.data?.message || "예약 수정 실패";
 
       if (
-        status === 409 ||
-        message.includes("unique") ||
-        message.includes("already") ||
-        message.includes("중복")
+          status === 409 ||
+          message.includes("unique") ||
+          message.includes("already") ||
+          message.includes("중복")
       ) {
         setError("이미 예약된 구장입니다.");
       } else {
@@ -98,52 +101,52 @@ export default function ReservationEditPage() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          예약 수정
-        </Typography>
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            예약 수정
+          </Typography>
 
-        {error && <Alert severity="error">{error}</Alert>}
+          {error && <Alert severity="error">{error}</Alert>}
 
-        <Box
-          component="form"
-          onSubmit={onSubmit}
-          sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
-        >
-          <TextField
-            label="회원 ID"
-            name="memberId"
-            value={form.memberId}
-            fullWidth
-            disabled
-          />
+          <Box
+              component="form"
+              onSubmit={onSubmit}
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}
+          >
+            <TextField
+                label="회원 ID"
+                name="memberId"
+                value={form.memberId}
+                fullWidth
+                disabled
+            />
 
-          <TextField
-            label="코트 ID"
-            name="courtId"
-            type="number"
-            value={form.courtId}
-            onChange={onChange}
-            fullWidth
-          />
+            <TextField
+                label="코트 ID"
+                name="courtId"
+                type="number"
+                value={form.courtId}
+                onChange={onChange}
+                fullWidth
+            />
 
-          <TextField
-            label="시작 시간"
-            name="startTime"
-            type="datetime-local"
-            value={form.startTime}
-            onChange={onChange}
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-          />
+            <TextField
+                label="시작 시간"
+                name="startTime"
+                type="datetime-local"
+                value={form.startTime}
+                onChange={onChange}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+            />
 
-          <Button type="submit" variant="contained">
-            수정 완료
-          </Button>
-        </Box>
-      </Paper>
-    </Container>
+            <Button type="submit" variant="contained">
+              수정 완료
+            </Button>
+          </Box>
+        </Paper>
+      </Container>
   );
 }
 

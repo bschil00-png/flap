@@ -17,13 +17,14 @@ import {
 export default function ReservationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const loginUser = getLoginUser();
+  const [loginUser] = useState(() => getLoginUser());
+  const loginUserId = loginUser?.id;
 
   const [reservation, setReservation] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loginUser) return;
+    if (!loginUserId) return;
 
     const run = async () => {
       setError("");
@@ -38,9 +39,9 @@ export default function ReservationDetailPage() {
     };
 
     run();
-  }, [id, loginUser]);
+  }, [id, loginUserId]);
 
-  if (!loginUser) {
+  if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
 
