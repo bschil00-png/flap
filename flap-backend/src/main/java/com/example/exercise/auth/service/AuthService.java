@@ -4,24 +4,27 @@ import com.example.exercise.auth.dto.request.LoginRequest;
 import com.example.exercise.auth.dto.response.LoginResponse;
 import com.example.exercise.member.entity.Member;
 import com.example.exercise.member.repository.MemberRepository;
-import com.example.exercise.refresh.entity.RefreshToken;
-import com.example.exercise.refresh.repository.RefreshTokenRepository;
 import com.example.exercise.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
 
+    private static final String REFRESH_TOKEN_PREFIX = "RT:";
+    private static final long REFRESH_TOKEN_EXPIRE_DAYS = 14;
+
     private final MemberRepository memberRepository;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Transactional
     public LoginResponse login(LoginRequest req) {
@@ -35,19 +38,13 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(member.getId(), member.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getId());
 
-        LocalDateTime expiryAt = LocalDateTime.now().plusDays(14);
+        String redisKey = getRefreshTokenKey(member.getId());
 
-        refreshTokenRepository.findByMemberId(member.getId())
-                .ifPresentOrElse(
-                        saved -> saved.update(refreshToken, expiryAt),
-                        () -> refreshTokenRepository.save(
-                                RefreshToken.builder()
-                                        .memberId(member.getId())
-                                        .tokenValue(refreshToken)
-                                        .expiryAt(expiryAt)
-                                        .build()
-                        )
-                );
+        redisTemplate.opsForValue().set(
+                redisKey,
+                refreshToken,
+                Duration.ofDays(REFRESH_TOKEN_EXPIRE_DAYS)
+        );
 
         return LoginResponse.builder()
                 .id(member.getId())
@@ -75,10 +72,14 @@ public class AuthService {
 
         Long memberId = jwtTokenProvider.getMemberId(refreshToken);
 
-        RefreshToken savedToken = refreshTokenRepository.findByMemberId(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("저장된 리프레시 토큰이 없습니다."));
+        String redisKey = getRefreshTokenKey(memberId);
+        String savedRefreshToken = redisTemplate.opsForValue().get(redisKey);
 
-        if (!savedToken.getTokenValue().equals(refreshToken)) {
+        if (savedRefreshToken == null) {
+            throw new IllegalArgumentException("저장된 리프레시 토큰이 없습니다.");
+        }
+
+        if (!savedRefreshToken.equals(refreshToken)) {
             throw new IllegalArgumentException("리프레시 토큰이 일치하지 않습니다.");
         }
 
@@ -98,6 +99,16 @@ public class AuthService {
 
     @Transactional
     public void logout(Long memberId) {
-        refreshTokenRepository.deleteByMemberId(memberId);
+        String redisKey = getRefreshTokenKey(memberId);
+        redisTemplate.delete(redisKey);
+    }
+
+    private String getRefreshTokenKey(Long memberId) {
+        return REFRESH_TOKEN_PREFIX + memberId;
+    }
+
+    @Transactional
+    public void removeRefreshToken(Long memberId) {
+        redisTemplate.delete(getRefreshTokenKey(memberId));
     }
 }

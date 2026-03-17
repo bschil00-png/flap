@@ -26,25 +26,30 @@ public class AuthController {
     public LoginResponse login(@RequestBody LoginRequest req, HttpServletResponse response) {
         LoginResponse result = authService.login(req);
 
-        Cookie cookie = new Cookie("refreshToken", result.getRefreshToken());
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24 * 14);
-        response.addCookie(cookie);
+        addAccessTokenCookie(response, result.getAccessToken());
+        addRefreshTokenCookie(response, result.getRefreshToken());
 
         return LoginResponse.builder()
                 .id(result.getId())
                 .email(result.getEmail())
                 .name(result.getName())
-                .accessToken(result.getAccessToken())
                 .message(result.getMessage())
                 .build();
     }
 
     @PostMapping("/refresh")
-    public LoginResponse refresh(HttpServletRequest request) {
+    public LoginResponse refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = extractRefreshTokenFromCookie(request);
-        return authService.refresh(refreshToken);
+        LoginResponse result = authService.refresh(refreshToken);
+
+        addAccessTokenCookie(response, result.getAccessToken());
+
+        return LoginResponse.builder()
+                .id(result.getId())
+                .email(result.getEmail())
+                .name(result.getName())
+                .message("액세스 토큰 재발급 완료")
+                .build();
     }
 
     @PostMapping("/logout")
@@ -61,11 +66,8 @@ public class AuthController {
             // 토큰이 이상하거나 만료되어도 쿠키 삭제는 진행
         }
 
-        Cookie cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        deleteCookie(response, "accessToken");
+        deleteCookie(response, "refreshToken");
     }
 
     @GetMapping("/me")
@@ -94,5 +96,30 @@ public class AuthController {
         }
 
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "리프레시 토큰이 없습니다.");
+    }
+
+    private void addAccessTokenCookie(HttpServletResponse response, String accessToken) {
+        Cookie cookie = new Cookie("accessToken", accessToken);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 30); // 30분
+        // 배포 전까지 로컬이면 secure 생략 또는 false
+        response.addCookie(cookie);
+    }
+
+    private void addRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        Cookie cookie = new Cookie("refreshToken", refreshToken);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24 * 14); // 14일
+        response.addCookie(cookie);
+    }
+
+    private void deleteCookie(HttpServletResponse response, String name) {
+        Cookie cookie = new Cookie(name, null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 }

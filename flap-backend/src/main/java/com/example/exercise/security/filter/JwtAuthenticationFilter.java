@@ -5,6 +5,7 @@ import com.example.exercise.security.principal.CustomUserDetails;
 import com.example.exercise.security.principal.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,28 +26,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String bearerToken = request.getHeader("Authorization");
+        String accessToken = extractAccessTokenFromCookie(request);
 
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7);
+        if (accessToken != null
+                && jwtTokenProvider.validateToken(accessToken)
+                && "access".equals(jwtTokenProvider.getTokenType(accessToken))) {
 
-            if (jwtTokenProvider.validateToken(token)
-                    && "access".equals(jwtTokenProvider.getTokenType(token))) {
+            Long memberId = jwtTokenProvider.getMemberId(accessToken);
+            CustomUserDetails userDetails = customUserDetailsService.loadUserById(memberId);
 
-                Long memberId = jwtTokenProvider.getMemberId(token);
-                CustomUserDetails userDetails = customUserDetailsService.loadUserById(memberId);
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String extractAccessTokenFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+
+        for (Cookie cookie : request.getCookies()) {
+            if ("accessToken".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+
+        return null;
     }
 }

@@ -1,12 +1,13 @@
 package com.example.exercise.member.service;
 
+import com.example.exercise.auth.service.AuthService;
 import com.example.exercise.member.dto.request.MemberCreateRequest;
 import com.example.exercise.member.dto.request.MemberUpdateRequest;
 import com.example.exercise.member.dto.response.MemberResponse;
 import com.example.exercise.member.entity.Member;
 import com.example.exercise.member.repository.MemberRepository;
-import com.example.exercise.refresh.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class MemberService {
 
+    private final AuthService authService;
     private final MemberRepository memberRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -43,6 +44,7 @@ public class MemberService {
 
         Member member = memberRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
+
         return MemberResponse.from(member);
     }
 
@@ -58,7 +60,7 @@ public class MemberService {
             newName = req.getName();
         }
 
-        String encodedPassword = null;
+        String encodedPassword = member.getPassword();
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
             encodedPassword = passwordEncoder.encode(req.getPassword());
         }
@@ -75,7 +77,10 @@ public class MemberService {
         Member member = memberRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new IllegalArgumentException("회원이 존재하지 않습니다."));
 
-        refreshTokenRepository.deleteByMemberId(id);
+        // Redis에 저장된 refresh token 삭제
+        authService.removeRefreshToken(id);
+
+        // 회원 soft delete
         member.softDelete();
     }
 
