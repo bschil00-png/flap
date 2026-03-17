@@ -16,13 +16,14 @@ import {
 
 export default function MemberDetailPage() {
   const navigate = useNavigate();
-  const loginUser = getLoginUser();
+  const [loginUser] = useState(() => getLoginUser());
+  const loginUserId = loginUser?.id;
 
   const [member, setMember] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!loginUser) return;
+    if (!loginUserId) return;
 
     const run = async () => {
       setError("");
@@ -31,15 +32,14 @@ export default function MemberDetailPage() {
         const data = unwrapData(res);
         setMember(data);
       } catch (err) {
-        const msg = err?.response?.data?.message || "조회 실패";
-        setError(msg);
+        setError(err?.response?.data?.message || "내 정보 조회 실패");
       }
     };
 
     run();
-  }, [loginUser]);
+  }, [loginUserId]);
 
-  if (!loginUser) {
+  if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
 
@@ -95,7 +95,6 @@ export default function MemberDetailPage() {
                           alert("회원 삭제 성공");
                           navigate("/login", { replace: true });
                         } catch (err) {
-                          console.error(err);
                           setError(err?.response?.data?.message || "회원 삭제 실패");
                         }
                       }}

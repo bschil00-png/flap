@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -21,11 +21,12 @@ import { getLoginUser } from "../../utils/authStorage";
 export default function MyReservationListPage() {
   const navigate = useNavigate();
   const loginUser = getLoginUser();
+  const loginUserId = loginUser?.id;
 
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
 
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     try {
       setError("");
       const res = await getMyReservations();
@@ -35,14 +36,14 @@ export default function MyReservationListPage() {
       console.error(err);
       setError(err?.response?.data?.message || "예약 목록 조회에 실패했습니다.");
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (!loginUser) return;
+    if (!loginUserId) return;
     fetchReservations();
-  }, [loginUser]);
+  }, [loginUserId, fetchReservations]);
 
-  if (!loginUser) {
+  if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
 

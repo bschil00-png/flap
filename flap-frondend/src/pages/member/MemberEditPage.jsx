@@ -17,7 +17,7 @@ export default function MemberEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const loginUser = getLoginUser();
+  const [loginUser] = useState(() => getLoginUser());
   const loginUserId = loginUser?.id;
 
   const [form, setForm] = useState({
