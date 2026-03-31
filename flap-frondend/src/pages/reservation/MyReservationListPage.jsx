@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   Container,
-  Divider,
+  Grid,
   Stack,
   Typography,
+  Snackbar,
 } from "@mui/material";
 import { useNavigate, Navigate } from "react-router-dom";
 import {
@@ -25,6 +27,7 @@ export default function MyReservationListPage() {
 
   const [reservations, setReservations] = useState([]);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -43,9 +46,45 @@ export default function MyReservationListPage() {
     fetchReservations();
   }, [loginUserId, fetchReservations]);
 
+  const sortedReservations = useMemo(() => {
+    return [...reservations].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+  }, [reservations]);
+
   if (!loginUserId) {
     return <Navigate to="/login" replace />;
   }
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    return date.toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getCourtName = (courtId) => {
+    if (courtId === 1) return "구장 A";
+    if (courtId === 2) return "구장 B";
+    return `구장 ${courtId}`;
+  };
+
+  const getStatusLabel = (status) => {
+    if (status === "BOOKED") return "예약 완료";
+    if (status === "CANCELED") return "취소됨";
+    if (status === "COMPLETED") return "이용 완료";
+    return status;
+  };
+
+  const getStatusColor = (status) => {
+    if (status === "BOOKED") return "primary";
+    if (status === "CANCELED") return "default";
+    if (status === "COMPLETED") return "success";
+    return "default";
+  };
 
   const handleCancel = async (reservationId) => {
     const ok = window.confirm("정말 이 예약을 취소하시겠습니까?");
@@ -53,7 +92,7 @@ export default function MyReservationListPage() {
 
     try {
       await cancelReservation(reservationId);
-      alert("예약이 취소되었습니다.");
+      setSuccessMessage("예약이 취소되었습니다.");
       fetchReservations();
     } catch (err) {
       console.error(err);
@@ -62,73 +101,93 @@ export default function MyReservationListPage() {
   };
 
   return (
-      <Container maxWidth="md">
-        <Card sx={{ mt: 6, borderRadius: 4, boxShadow: 3 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              내 예약 목록
-            </Typography>
+      <Container maxWidth="lg">
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            내 예약
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            예약 내역과 상태를 확인할 수 있습니다.
+          </Typography>
+        </Box>
 
-            {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-            )}
+        {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+        )}
 
-            {reservations.length === 0 ? (
-                <Typography sx={{ mt: 2 }}>예약 내역이 없습니다.</Typography>
-            ) : (
-                reservations.map((item, index) => (
-                    <Box key={item.id} sx={{ py: 2 }}>
-                      <Typography variant="body1" fontWeight="bold">
-                        구장: {item.courtId}
-                      </Typography>
-
-                      <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 2 }}
-                      >
-                        예약 시간: {item.startTime}
-                      </Typography>
-
-                      {item.status && (
-                          <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ mb: 2 }}
-                          >
-                            상태: {item.status}
-                          </Typography>
-                      )}
-
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => navigate(`/reservations/${item.id}`)}
+        {sortedReservations.length === 0 ? (
+            <Card sx={{ borderRadius: 4 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Typography>예약 내역이 없습니다.</Typography>
+              </CardContent>
+            </Card>
+        ) : (
+            <Grid container spacing={3}>
+              {sortedReservations.map((item) => (
+                  <Grid item xs={12} md={6} key={item.id}>
+                    <Card sx={{ borderRadius: 4, boxShadow: 2, height: "100%" }}>
+                      <CardContent sx={{ p: 3 }}>
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            sx={{ mb: 2 }}
                         >
-                          상세보기
-                        </Button>
+                          <Typography variant="h6" fontWeight="bold">
+                            {getCourtName(item.courtId)}
+                          </Typography>
+                          <Chip
+                              label={getStatusLabel(item.status)}
+                              color={getStatusColor(item.status)}
+                              size="small"
+                          />
+                        </Stack>
 
-                        {item.status !== "CANCELED" && (
-                            <Button
-                                variant="contained"
-                                color="error"
-                                onClick={() => handleCancel(item.id)}
-                            >
-                              예약 취소
-                            </Button>
-                        )}
-                      </Stack>
+                        <Stack spacing={1.2}>
+                          <Typography variant="body2" color="text.secondary">
+                            예약 번호: {item.id}
+                          </Typography>
+                          <Typography variant="body1">
+                            예약 시간: {formatDateTime(item.startTime)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            생성일: {formatDateTime(item.createdAt)}
+                          </Typography>
+                        </Stack>
 
-                      {index !== reservations.length - 1 && (
-                          <Divider sx={{ mt: 3 }} />
-                      )}
-                    </Box>
-                ))
-            )}
-          </CardContent>
-        </Card>
+                        <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
+                          <Button
+                              variant="outlined"
+                              onClick={() => navigate(`/reservations/${item.id}`)}
+                          >
+                            상세보기
+                          </Button>
+
+                          {item.status === "BOOKED" && (
+                              <Button
+                                  variant="contained"
+                                  color="error"
+                                  onClick={() => handleCancel(item.id)}
+                              >
+                                예약 취소
+                              </Button>
+                          )}
+                        </Stack>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+              ))}
+            </Grid>
+        )}
+
+        <Snackbar
+            open={!!successMessage}
+            autoHideDuration={1500}
+            onClose={() => setSuccessMessage("")}
+            message={successMessage}
+        />
       </Container>
   );
 }

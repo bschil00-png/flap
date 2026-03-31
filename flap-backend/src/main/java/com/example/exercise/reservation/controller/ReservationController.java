@@ -2,6 +2,7 @@ package com.example.exercise.reservation.controller;
 
 import com.example.exercise.reservation.dto.ReservationCreateRequest;
 import com.example.exercise.reservation.dto.ReservationResponse;
+import com.example.exercise.reservation.dto.ReservationSlotResponse;
 import com.example.exercise.reservation.dto.ReservationUpdateRequest;
 import com.example.exercise.reservation.service.ReservationService;
 import com.example.exercise.security.principal.CustomUserDetails;
@@ -42,12 +43,12 @@ public class ReservationController {
         return reservationService.findByMemberId(userDetails.getId());
     }
 
-    @GetMapping("/reserved-slots")
-    public List<Integer> reservedSlots(
+    @GetMapping("/slots")
+    public List<ReservationSlotResponse> slots(
             @RequestParam Long courtId,
             @RequestParam String date
     ) {
-        return reservationService.findReservedHours(
+        return reservationService.findReservationSlots(
                 courtId,
                 LocalDate.parse(date)
         );
