@@ -17,10 +17,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             LocalDateTime startTime,
             ReservationStatus status
     );
+
     List<Reservation> findAllByCourtIdAndStartTimeBetweenAndStatus(
             Long courtId,
             LocalDateTime start,
             LocalDateTime end,
+            ReservationStatus status
+    );
+
+    boolean existsByMemberIdAndStartTimeAndStatus(
+            Long memberId,
+            LocalDateTime startTime,
             ReservationStatus status
     );
 }

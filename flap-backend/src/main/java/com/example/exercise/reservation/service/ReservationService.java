@@ -2,6 +2,7 @@ package com.example.exercise.reservation.service;
 
 import com.example.exercise.reservation.dto.ReservationCreateRequest;
 import com.example.exercise.reservation.dto.ReservationResponse;
+import com.example.exercise.reservation.dto.ReservationSlotResponse;
 import com.example.exercise.reservation.dto.ReservationUpdateRequest;
 import com.example.exercise.reservation.entity.Reservation;
 import com.example.exercise.reservation.entity.ReservationStatus;
@@ -13,7 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class ReservationService {
 
     public ReservationResponse create(Long loginMemberId, ReservationCreateRequest req) {
         validateStartTime(req.getStartTime());
+        validateReservationPolicy(loginMemberId, req.getStartTime());
 
         reservationRepository.findByCourtIdAndStartTimeAndStatus(
                 req.getCourtId(),
@@ -64,8 +69,16 @@ public class ReservationService {
 
         validateReservationOwner(reservation, loginMemberId);
 
+        if (reservation.getStatus() != ReservationStatus.BOOKED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "예약 완료 상태에서만 수정할 수 있습니다.");
+        }
+
         if (req.getStartTime() != null) {
             validateStartTime(req.getStartTime());
+
+            if (req.getStartTime().isBefore(LocalDateTime.now().plusHours(1))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "예약은 최소 1시간 전까지만 수정할 수 있습니다.");
+            }
 
             reservationRepository.findByCourtIdAndStartTimeAndStatus(
                     reservation.getCourtId(),
@@ -94,6 +107,18 @@ public class ReservationService {
 
         validateReservationOwner(reservation, loginMemberId);
 
+        if (reservation.getStatus() == ReservationStatus.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이미 취소된 예약입니다.");
+        }
+
+        if (reservation.getStatus() == ReservationStatus.COMPLETED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "완료된 예약은 취소할 수 없습니다.");
+        }
+
+        if (reservation.getStartTime().isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "예약 시작 2시간 전까지만 취소할 수 있습니다.");
+        }
+
         reservation.setStatus(ReservationStatus.CANCELED);
         Reservation updated = reservationRepository.save(reservation);
 
@@ -106,6 +131,56 @@ public class ReservationService {
 
         validateReservationOwner(reservation, loginMemberId);
         reservationRepository.delete(reservation);
+    }
+
+    public List<ReservationSlotResponse> findReservationSlots(Long courtId, LocalDate date) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.plusDays(1).atStartOfDay();
+
+        List<Reservation> reservations =
+                reservationRepository.findAllByCourtIdAndStartTimeBetweenAndStatus(
+                        courtId,
+                        start,
+                        end,
+                        ReservationStatus.BOOKED
+                );
+
+        Set<Integer> reservedHours = reservations.stream()
+                .map(r -> r.getStartTime().getHour())
+                .collect(Collectors.toSet());
+
+        LocalDateTime now = LocalDateTime.now();
+        List<ReservationSlotResponse> result = new ArrayList<>();
+
+        for (int hour = 9; hour < 22; hour++) {
+            LocalDateTime slotStart = date.atTime(hour, 0);
+            LocalDateTime slotEnd = slotStart.plusHours(1);
+
+            boolean reserved = reservedHours.contains(hour);
+            boolean past = slotStart.isBefore(now);
+            boolean cutoff = !past && slotStart.isBefore(now.plusHours(1));
+
+            boolean available = !reserved && !past && !cutoff;
+            String reason = null;
+
+            if (reserved) {
+                reason = "RESERVED";
+            } else if (past) {
+                reason = "PAST";
+            } else if (cutoff) {
+                reason = "CUTOFF";
+            }
+
+            result.add(ReservationSlotResponse.builder()
+                    .hour(hour)
+                    .startTime(slotStart)
+                    .endTime(slotEnd)
+                    .available(available)
+                    .reason(reason)
+                    .build());
+        }
+
+        return result;
     }
 
     private void validateReservationOwner(Reservation reservation, Long loginMemberId) {
@@ -134,20 +209,19 @@ public class ReservationService {
         }
     }
 
-    public List<Integer> findReservedHours(Long courtId, LocalDate date) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.plusDays(1).atStartOfDay();
+    private void validateReservationPolicy(Long memberId, LocalDateTime startTime) {
+        if (startTime.isBefore(LocalDateTime.now().plusHours(1))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "예약은 최소 1시간 전에만 가능합니다.");
+        }
 
-        List<Reservation> reservations =
-                reservationRepository.findAllByCourtIdAndStartTimeBetweenAndStatus(
-                        courtId,
-                        start,
-                        end,
-                        ReservationStatus.BOOKED
-                );
+        boolean exists = reservationRepository.existsByMemberIdAndStartTimeAndStatus(
+                memberId,
+                startTime,
+                ReservationStatus.BOOKED
+        );
 
-        return reservations.stream()
-                .map(r -> r.getStartTime().getHour())
-                .toList();
+        if (exists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "동일 시간대에 이미 예약이 있습니다.");
+        }
     }
 }
